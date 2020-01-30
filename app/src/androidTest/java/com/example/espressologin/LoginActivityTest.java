@@ -10,9 +10,17 @@ import org.junit.runner.RunWith;
 import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.action.ViewActions.click;
 import static androidx.test.espresso.action.ViewActions.replaceText;
+import static androidx.test.espresso.assertion.ViewAssertions.matches;
+import static androidx.test.espresso.matcher.RootMatchers.withDecorView;
+import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
+import static androidx.test.espresso.matcher.ViewMatchers.isEnabled;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
+import static androidx.test.espresso.matcher.ViewMatchers.withText;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.core.AllOf.allOf;
 import static org.junit.Assert.assertTrue;
-
+import static androidx.test.espresso.matcher.ViewMatchers.hasErrorText;
 
 
 @RunWith(AndroidJUnit4.class)
@@ -29,25 +37,48 @@ public class LoginActivityTest {
 
         loginActivity.launchActivity(new Intent());
 
+        setUserDataAndCallLogin("test@test.com", "secretpassword");
+        waitFor(150);
+        onView(withText(R.string.welcome)).inRoot(withDecorView(not(is(loginActivity.getActivity().getWindow().getDecorView())))).check(matches(isDisplayed()));
+        onView((withId(R.id.login))).check(matches(isEnabled()));
+
+        setUserDataAndCallLogin("wrong_email@test.com", "wrongpassword");
+        waitFor(150);
+        onView(withText(R.string.login_failed)).inRoot(withDecorView(not(is(loginActivity.getActivity().getWindow().getDecorView())))).check(matches(isDisplayed()));
+
+        setUserDataAndCallLogin("not_email", "secretpassword");
+        waitFor(150);
+        onView(withText(R.string.login_failed)).inRoot(withDecorView(not(is(loginActivity.getActivity().getWindow().getDecorView())))).check(matches(isDisplayed()));
+
+
+        setUserDataAndCallLogin("test@test.com", "short");
+        waitFor(150);
+        onView(withId(R.id.password)).check(matches(hasErrorText(loginActivity.getActivity().getString(R.string.invalid_password))));
+
+
+        setUserDataAndCallLogin("test@test.com", "");
+        waitFor(150);
+        onView(withId(R.id.login)).check(matches(not(isEnabled())));
+
+        setUserDataAndCallLogin("", "secretpassword");
+        waitFor(150);
+        onView(withId(R.id.login)).check(matches(not(isEnabled())));
+    }
+
+    private void setUserDataAndCallLogin(String username, String password) {
         onView(withId(R.id.username))// pod pole username podstawiamy tekst
-                .perform(replaceText("test@test.com"));
+                .perform(replaceText(username));
 
         onView(withId(R.id.password))// pod pole hasło podstawiamy tekst
-                .perform(replaceText("secretpassword"));
+                .perform(replaceText(password));
 
         onView(withId(R.id.login))// klikamy zaloguj
                 .perform(click());
-
-        waitFor();
-
-        assertTrue(loginActivity.getActivity().isDestroyed());//sprawdzamy czy aplikacja sie zamknęła
-
-
     }
 
-    private void waitFor() {
+    private void waitFor(Integer millis) {
         try {
-            Thread.sleep(1000);
+            Thread.sleep(millis);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
